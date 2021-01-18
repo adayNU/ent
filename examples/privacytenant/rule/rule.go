@@ -110,8 +110,7 @@ func DenyMutationsToDatasetsBelongingToOtherTenants() privacy.MutationRule {
 		case ent.OpUpdate, ent.OpDelete:
 			var did, ok = m.ID()
 			if !ok {
-				// What do I do here?!?!
-				return nil
+				panic("no id set")
 			}
 
 			var tid, err = m.Client().Dataset.
