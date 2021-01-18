@@ -7,6 +7,7 @@ package rule
 import (
 	"context"
 	"github.com/facebook/ent/examples/privacytenant/ent/dataset"
+	"github.com/facebook/ent/examples/privacytenant/ent/group"
 
 	"github.com/facebook/ent/examples/privacytenant/ent"
 	"github.com/facebook/ent/examples/privacytenant/ent/predicate"
@@ -91,9 +92,20 @@ func DenyMismatchedTenants() privacy.MutationRule {
 	return privacy.OnMutationOperation(rule, ent.OpCreate)
 }
 
-func DenyMutationsToDatasetsBelongingToOtherTenants() privacy.MutationRule {
-	return privacy.DatasetMutationRuleFunc(func(ctx context.Context, m *ent.DatasetMutation) error {
+func DenyMutationsBelongingToOtherTenants() privacy.MutationRule {
+	type TenantMutator interface{
+		TenantID() (int, bool)
+		TenantCleared() bool
+		ID() (int, bool)
+		Client() *ent.Client
+	}
+	return privacy.MutationRuleFunc(func(ctx context.Context, m ent.Mutation) error {
 		var t = viewer.FromContext(ctx)
+
+		var mut, ok = m.(TenantMutator)
+		if !ok {
+			return privacy.Denyf("unexpected mutation type %T", m)
+		}
 
 		if t.TenantID() == 0 {
 			return privacy.Denyf("missing tenant information in context")
@@ -101,24 +113,41 @@ func DenyMutationsToDatasetsBelongingToOtherTenants() privacy.MutationRule {
 
 		switch m.Op() {
 		case ent.OpCreate:
-			if id, ok := m.TenantID(); !ok {
+			if id, ok := mut.TenantID(); !ok {
 				return privacy.Denyf("no tenant edge set in create op")
 			} else if id != t.TenantID() {
 				return privacy.Denyf("mismatch tenant-ids for dataset/user %d != %d", t.TenantID(), id)
 			}
-			return privacy.Allow
+			return privacy.Skip
 		case ent.OpUpdate, ent.OpDelete:
-			var did, ok = m.ID()
+			var did, ok = mut.ID()
 			if !ok {
 				// What do I do here?!?!
 				return nil
 			}
 
-			var tid, err = m.Client().Dataset.
-				Query().
-				Where(dataset.ID(did)).
-				QueryTenant().
-				OnlyID(ctx)
+			// Not ideal but works...
+			var tid int
+			var err error
+
+			switch m.Type() {
+			case ent.TypeDataset:
+				tid, err = mut.Client().Dataset.
+					Query().
+					Where(dataset.ID(did)).
+					QueryTenant().
+					OnlyID(ctx)
+			case ent.TypeGroup:
+				tid, err = mut.Client().Group.
+					Query().
+					Where(group.ID(did)).
+					QueryTenant().
+					OnlyID(ctx)
+			// ... one case per schema
+			default:
+				return privacy.Deny
+			}
+
 			if err != nil {
 				return privacy.Denyf("querying the tenant-id %v", err)
 			}
@@ -129,9 +158,9 @@ func DenyMutationsToDatasetsBelongingToOtherTenants() privacy.MutationRule {
 			}
 
 			// Lastly check that the mutation wouldn't change the tenant ID (only applicable to Update).
-			if mtid, ok := m.TenantID(); ok && mtid != t.TenantID() {
+			if mtid, ok := mut.TenantID(); ok && mtid != t.TenantID() {
 				return privacy.Denyf("mismatch tenant-ids for dataset/user %d != %d", t.TenantID(), did)
-			} else if m.TenantCleared() {
+			} else if mut.TenantCleared() {
 				// Would be caught a constraint error, but seems better to do this here.
 				return privacy.Denyf("tenant edge cleared")
 			}

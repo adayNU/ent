@@ -2,8 +2,6 @@ package schema
 
 import (
 	"github.com/facebook/ent"
-	"github.com/facebook/ent/examples/privacytenant/ent/privacy"
-	"github.com/facebook/ent/examples/privacytenant/rule"
 	"github.com/facebook/ent/schema/field"
 )
 
@@ -30,12 +28,4 @@ func (Dataset) Fields() []ent.Field {
 // Edges of the Dataset.
 func (Dataset) Edges() []ent.Edge {
 	return nil
-}
-
-func (Dataset) Policy() ent.Policy {
-	return privacy.Policy{
-		Mutation: privacy.MutationPolicy{
-			rule.DenyMutationsToDatasetsBelongingToOtherTenants(),
-		},
-	}
 }

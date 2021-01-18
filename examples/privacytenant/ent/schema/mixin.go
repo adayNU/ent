@@ -52,5 +52,8 @@ func (TenantMixin) Policy() ent.Policy {
 			// If the viewer is admin, this policy rule is skipped above.
 			rule.FilterTenantRule(),
 		},
+		Mutation: privacy.MutationPolicy{
+			rule.DenyMutationsBelongingToOtherTenants(),
+		},
 	}
 }
