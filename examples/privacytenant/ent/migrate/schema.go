@@ -12,6 +12,27 @@ import (
 )
 
 var (
+	// DatasetsColumns holds the columns for the "datasets" table.
+	DatasetsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "name", Type: field.TypeString},
+		{Name: "dataset_tenant", Type: field.TypeInt, Nullable: true},
+	}
+	// DatasetsTable holds the schema information for the "datasets" table.
+	DatasetsTable = &schema.Table{
+		Name:       "datasets",
+		Columns:    DatasetsColumns,
+		PrimaryKey: []*schema.Column{DatasetsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:  "datasets_tenants_tenant",
+				Columns: []*schema.Column{DatasetsColumns[2]},
+
+				RefColumns: []*schema.Column{TenantsColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+		},
+	}
 	// GroupsColumns holds the columns for the "groups" table.
 	GroupsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
@@ -96,6 +117,7 @@ var (
 	}
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
+		DatasetsTable,
 		GroupsTable,
 		TenantsTable,
 		UsersTable,
@@ -104,6 +126,7 @@ var (
 )
 
 func init() {
+	DatasetsTable.ForeignKeys[0].RefTable = TenantsTable
 	GroupsTable.ForeignKeys[0].RefTable = TenantsTable
 	UsersTable.ForeignKeys[0].RefTable = TenantsTable
 	UserGroupsTable.ForeignKeys[0].RefTable = UsersTable

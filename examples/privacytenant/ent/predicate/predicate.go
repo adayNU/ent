@@ -10,6 +10,9 @@ import (
 	"github.com/facebook/ent/dialect/sql"
 )
 
+// Dataset is the predicate function for dataset builders.
+type Dataset func(*sql.Selector)
+
 // Group is the predicate function for group builders.
 type Group func(*sql.Selector)
 
