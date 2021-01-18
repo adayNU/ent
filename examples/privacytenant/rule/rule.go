@@ -6,6 +6,7 @@ package rule
 
 import (
 	"context"
+	"github.com/facebook/ent/examples/privacytenant/ent/dataset"
 
 	"github.com/facebook/ent/examples/privacytenant/ent"
 	"github.com/facebook/ent/examples/privacytenant/ent/predicate"
@@ -88,4 +89,54 @@ func DenyMismatchedTenants() privacy.MutationRule {
 	})
 	// Evaluate the mutation rule only on group creation.
 	return privacy.OnMutationOperation(rule, ent.OpCreate)
+}
+
+func DenyMutationsToDatasetsBelongingToOtherTenants() privacy.MutationRule {
+	return privacy.DatasetMutationRuleFunc(func(ctx context.Context, m *ent.DatasetMutation) error {
+		var t = viewer.FromContext(ctx)
+
+		if t.TenantID() == 0 {
+			return privacy.Denyf("missing tenant information in context")
+		}
+
+		switch m.Op() {
+		case ent.OpCreate:
+			if id, ok := m.TenantID(); !ok {
+				return privacy.Denyf("no tenant edge set in create op")
+			} else if id != t.TenantID() {
+				return privacy.Denyf("mismatch tenant-ids for dataset/user %d != %d", t.TenantID(), id)
+			}
+			return privacy.Skip
+		case ent.OpUpdate, ent.OpDelete:
+			var did, ok = m.ID()
+			if !ok {
+				// What do I do here?!?!
+				return nil
+			}
+
+			var tid, err = m.Client().Dataset.
+				Query().
+				Where(dataset.ID(did)).
+				QueryTenant().
+				OnlyID(ctx)
+			if err != nil {
+				return privacy.Denyf("querying the tenant-id %v", err)
+			}
+
+			// If it originally belonged to another tenant, shouldn't be modified by this user.
+			if tid != t.TenantID() {
+				return privacy.Denyf("mismatch tenant-ids for dataset/user %d != %d", t.TenantID(), did)
+			}
+
+			// Lastly check that the mutation wouldn't change the tenant ID (only applicable to Update).
+			if mtid, ok := m.TenantID(); ok && mtid != t.TenantID() {
+				return privacy.Denyf("mismatch tenant-ids for dataset/user %d != %d", t.TenantID(), did)
+			} else if m.TenantCleared() {
+				// Would be caught a constraint error, but seems better to do this here.
+				return privacy.Denyf("tenant edge cleared")
+			}
+		}
+
+		return privacy.Skip
+	})
 }

@@ -24,6 +24,7 @@ const (
 type Viewer interface {
 	Admin() bool    // If viewer is admin.
 	Tenant() string // Tenant name.
+	TenantID() int
 }
 
 // UserViewer describes a user-viewer.
@@ -41,6 +42,13 @@ func (v UserViewer) Tenant() string {
 		return v.T.Name
 	}
 	return ""
+}
+
+func (v UserViewer) TenantID() int {
+	if v.T != nil {
+		return v.T.ID
+	}
+	return 0
 }
 
 type ctxKey struct{}

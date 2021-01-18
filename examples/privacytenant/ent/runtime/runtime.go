@@ -9,6 +9,7 @@ package runtime
 import (
 	"context"
 
+	"github.com/facebook/ent/examples/privacytenant/ent/dataset"
 	"github.com/facebook/ent/examples/privacytenant/ent/group"
 	"github.com/facebook/ent/examples/privacytenant/ent/schema"
 	"github.com/facebook/ent/examples/privacytenant/ent/tenant"
@@ -22,6 +23,16 @@ import (
 // (default values, validators, hooks and policies) and stitches it
 // to their package variables.
 func init() {
+	datasetMixin := schema.Dataset{}.Mixin()
+	dataset.Policy = privacy.NewPolicies(datasetMixin[0], datasetMixin[1], schema.Dataset{})
+	dataset.Hooks[0] = func(next ent.Mutator) ent.Mutator {
+		return ent.MutateFunc(func(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+			if err := dataset.Policy.EvalMutation(ctx, m); err != nil {
+				return nil, err
+			}
+			return next.Mutate(ctx, m)
+		})
+	}
 	groupMixin := schema.Group{}.Mixin()
 	group.Policy = privacy.NewPolicies(groupMixin[0], groupMixin[1], schema.Group{})
 	group.Hooks[0] = func(next ent.Mutator) ent.Mutator {

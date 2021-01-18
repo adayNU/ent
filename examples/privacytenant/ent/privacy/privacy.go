@@ -169,6 +169,30 @@ func DenyMutationOperationRule(op ent.Op) MutationRule {
 	return OnMutationOperation(rule, op)
 }
 
+// The DatasetQueryRuleFunc type is an adapter to allow the use of ordinary
+// functions as a query rule.
+type DatasetQueryRuleFunc func(context.Context, *ent.DatasetQuery) error
+
+// EvalQuery return f(ctx, q).
+func (f DatasetQueryRuleFunc) EvalQuery(ctx context.Context, q ent.Query) error {
+	if q, ok := q.(*ent.DatasetQuery); ok {
+		return f(ctx, q)
+	}
+	return Denyf("ent/privacy: unexpected query type %T, expect *ent.DatasetQuery", q)
+}
+
+// The DatasetMutationRuleFunc type is an adapter to allow the use of ordinary
+// functions as a mutation rule.
+type DatasetMutationRuleFunc func(context.Context, *ent.DatasetMutation) error
+
+// EvalMutation calls f(ctx, m).
+func (f DatasetMutationRuleFunc) EvalMutation(ctx context.Context, m ent.Mutation) error {
+	if m, ok := m.(*ent.DatasetMutation); ok {
+		return f(ctx, m)
+	}
+	return Denyf("ent/privacy: unexpected mutation type %T, expect *ent.DatasetMutation", m)
+}
+
 // The GroupQueryRuleFunc type is an adapter to allow the use of ordinary
 // functions as a query rule.
 type GroupQueryRuleFunc func(context.Context, *ent.GroupQuery) error
@@ -276,6 +300,8 @@ var _ QueryMutationRule = FilterFunc(nil)
 
 func queryFilter(q ent.Query) (Filter, error) {
 	switch q := q.(type) {
+	case *ent.DatasetQuery:
+		return q.Filter(), nil
 	case *ent.GroupQuery:
 		return q.Filter(), nil
 	case *ent.TenantQuery:
@@ -289,6 +315,8 @@ func queryFilter(q ent.Query) (Filter, error) {
 
 func mutationFilter(m ent.Mutation) (Filter, error) {
 	switch m := m.(type) {
+	case *ent.DatasetMutation:
+		return m.Filter(), nil
 	case *ent.GroupMutation:
 		return m.Filter(), nil
 	case *ent.TenantMutation:

@@ -13,6 +13,7 @@ import (
 
 	"github.com/facebook/ent/examples/privacytenant/ent/migrate"
 
+	"github.com/facebook/ent/examples/privacytenant/ent/dataset"
 	"github.com/facebook/ent/examples/privacytenant/ent/group"
 	"github.com/facebook/ent/examples/privacytenant/ent/tenant"
 	"github.com/facebook/ent/examples/privacytenant/ent/user"
@@ -27,6 +28,8 @@ type Client struct {
 	config
 	// Schema is the client for creating, migrating and dropping schema.
 	Schema *migrate.Schema
+	// Dataset is the client for interacting with the Dataset builders.
+	Dataset *DatasetClient
 	// Group is the client for interacting with the Group builders.
 	Group *GroupClient
 	// Tenant is the client for interacting with the Tenant builders.
@@ -46,6 +49,7 @@ func NewClient(opts ...Option) *Client {
 
 func (c *Client) init() {
 	c.Schema = migrate.NewSchema(c.driver)
+	c.Dataset = NewDatasetClient(c.config)
 	c.Group = NewGroupClient(c.config)
 	c.Tenant = NewTenantClient(c.config)
 	c.User = NewUserClient(c.config)
@@ -79,11 +83,12 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 	}
 	cfg := config{driver: tx, log: c.log, debug: c.debug, hooks: c.hooks}
 	return &Tx{
-		ctx:    ctx,
-		config: cfg,
-		Group:  NewGroupClient(cfg),
-		Tenant: NewTenantClient(cfg),
-		User:   NewUserClient(cfg),
+		ctx:     ctx,
+		config:  cfg,
+		Dataset: NewDatasetClient(cfg),
+		Group:   NewGroupClient(cfg),
+		Tenant:  NewTenantClient(cfg),
+		User:    NewUserClient(cfg),
 	}, nil
 }
 
@@ -100,17 +105,18 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 	}
 	cfg := config{driver: &txDriver{tx: tx, drv: c.driver}, log: c.log, debug: c.debug, hooks: c.hooks}
 	return &Tx{
-		config: cfg,
-		Group:  NewGroupClient(cfg),
-		Tenant: NewTenantClient(cfg),
-		User:   NewUserClient(cfg),
+		config:  cfg,
+		Dataset: NewDatasetClient(cfg),
+		Group:   NewGroupClient(cfg),
+		Tenant:  NewTenantClient(cfg),
+		User:    NewUserClient(cfg),
 	}, nil
 }
 
 // Debug returns a new debug-client. It's used to get verbose logging on specific operations.
 //
 //	client.Debug().
-//		Group.
+//		Dataset.
 //		Query().
 //		Count(ctx)
 //
@@ -132,9 +138,115 @@ func (c *Client) Close() error {
 // Use adds the mutation hooks to all the entity clients.
 // In order to add hooks to a specific client, call: `client.Node.Use(...)`.
 func (c *Client) Use(hooks ...Hook) {
+	c.Dataset.Use(hooks...)
 	c.Group.Use(hooks...)
 	c.Tenant.Use(hooks...)
 	c.User.Use(hooks...)
+}
+
+// DatasetClient is a client for the Dataset schema.
+type DatasetClient struct {
+	config
+}
+
+// NewDatasetClient returns a client for the Dataset from the given config.
+func NewDatasetClient(c config) *DatasetClient {
+	return &DatasetClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `dataset.Hooks(f(g(h())))`.
+func (c *DatasetClient) Use(hooks ...Hook) {
+	c.hooks.Dataset = append(c.hooks.Dataset, hooks...)
+}
+
+// Create returns a create builder for Dataset.
+func (c *DatasetClient) Create() *DatasetCreate {
+	mutation := newDatasetMutation(c.config, OpCreate)
+	return &DatasetCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of Dataset entities.
+func (c *DatasetClient) CreateBulk(builders ...*DatasetCreate) *DatasetCreateBulk {
+	return &DatasetCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for Dataset.
+func (c *DatasetClient) Update() *DatasetUpdate {
+	mutation := newDatasetMutation(c.config, OpUpdate)
+	return &DatasetUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *DatasetClient) UpdateOne(d *Dataset) *DatasetUpdateOne {
+	mutation := newDatasetMutation(c.config, OpUpdateOne, withDataset(d))
+	return &DatasetUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *DatasetClient) UpdateOneID(id int) *DatasetUpdateOne {
+	mutation := newDatasetMutation(c.config, OpUpdateOne, withDatasetID(id))
+	return &DatasetUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for Dataset.
+func (c *DatasetClient) Delete() *DatasetDelete {
+	mutation := newDatasetMutation(c.config, OpDelete)
+	return &DatasetDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a delete builder for the given entity.
+func (c *DatasetClient) DeleteOne(d *Dataset) *DatasetDeleteOne {
+	return c.DeleteOneID(d.ID)
+}
+
+// DeleteOneID returns a delete builder for the given id.
+func (c *DatasetClient) DeleteOneID(id int) *DatasetDeleteOne {
+	builder := c.Delete().Where(dataset.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &DatasetDeleteOne{builder}
+}
+
+// Query returns a query builder for Dataset.
+func (c *DatasetClient) Query() *DatasetQuery {
+	return &DatasetQuery{config: c.config}
+}
+
+// Get returns a Dataset entity by its id.
+func (c *DatasetClient) Get(ctx context.Context, id int) (*Dataset, error) {
+	return c.Query().Where(dataset.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *DatasetClient) GetX(ctx context.Context, id int) *Dataset {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryTenant queries the tenant edge of a Dataset.
+func (c *DatasetClient) QueryTenant(d *Dataset) *TenantQuery {
+	query := &TenantQuery{config: c.config}
+	query.path = func(ctx context.Context) (fromV *sql.Selector, _ error) {
+		id := d.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(dataset.Table, dataset.FieldID, id),
+			sqlgraph.To(tenant.Table, tenant.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, false, dataset.TenantTable, dataset.TenantColumn),
+		)
+		fromV = sqlgraph.Neighbors(d.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *DatasetClient) Hooks() []Hook {
+	hooks := c.hooks.Dataset
+	return append(hooks[:len(hooks):len(hooks)], dataset.Hooks[:]...)
 }
 
 // GroupClient is a client for the Group schema.
