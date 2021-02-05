@@ -8,7 +8,11 @@ in the LICENSE file in the root directory of this source tree.
 {{ define "dialect/sql/model/fields" }}
 	{{- range $fk := $.ForeignKeys }}
 		{{- $f := $fk.Field }}
-		{{ $f.Name }} {{ if $f.Nillable }}*{{ end }}{{ $f.Type }}
+		{{- if $.FeatureEnabled "sql/fks" }}
+		    {{ pascal $f.Name }} {{ if $f.Nillable }}*{{ end }}{{ $f.Type }}
+		{{- else }}
+		    {{ $f.Name }} {{ if $f.Nillable }}*{{ end }}{{ $f.Type }}
+		{{- end }}
 	{{- end }}
 	{{- /* Allow adding struct fields by ent extensions or user templates.*/}}
 	{{- with $tmpls := matchTemplate "dialect/sql/model/fields/*"  }}
