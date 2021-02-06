@@ -57,6 +57,7 @@ type Field struct {
 	SchemaType    map[string]string       `json:"schema_type,omitempty"`
 	Annotations   map[string]interface{}  `json:"annotations,omitempty"`
 	Comment       string                  `json:"comment,omitempty"`
+	Relation      string                  `json:"relation,omitempty"`
 }
 
 // Edge represents an ent.Edge that was loaded from a complied user package.
@@ -126,6 +127,7 @@ func NewField(fd *field.Descriptor) (*Field, error) {
 		SchemaType:    fd.SchemaType,
 		Annotations:   make(map[string]interface{}),
 		Comment:       fd.Comment,
+		Relation:      fd.Relation,
 	}
 	for _, at := range fd.Annotations {
 		sf.addAnnotation(at)

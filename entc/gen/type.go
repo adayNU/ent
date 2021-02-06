@@ -7,6 +7,7 @@ package gen
 import (
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"go/token"
 	"go/types"
@@ -85,6 +86,8 @@ type (
 		// Annotations that were defined for the field in the schema.
 		// The mapping is from the Annotation.Name() to a JSON decoded object.
 		Annotations map[string]interface{}
+		// For Foreign Key Fields, this is the name of the relation.
+		Relation string
 	}
 
 	// Edge of a graph between two types.
@@ -118,6 +121,9 @@ type (
 		// Annotations that were defined for the edge in the schema.
 		// The mapping is from the Annotation.Name() to a JSON decoded object.
 		Annotations map[string]interface{}
+		// FKFieldStruct holds the struct name of a Foreign Key Field if it was
+		// explicitly defined.
+		FKFieldStruct *string
 	}
 
 	// Relation holds the relational database information for edges.
@@ -205,6 +211,7 @@ func NewType(c *Config, schema *load.Schema) (*Type, error) {
 			Validators:    f.Validators,
 			UserDefined:   true,
 			Annotations:   f.Annotations,
+			Relation:      f.Relation,
 		}
 		if err := typ.checkField(tf, f); err != nil {
 			return nil, err
@@ -533,33 +540,66 @@ func (t *Type) AddIndex(idx *load.Index) error {
 
 // resolveFKs makes sure all edge-fks are created for the types.
 func (t *Type) resolveFKs() error {
+	var fkFields = make(map[string]*Field)
+	for _, f := range t.Fields {
+		if f.Relation != "" {
+			fkFields[f.Relation] = f
+		}
+	}
+
 	for _, e := range t.Edges {
 		if err := e.setStorageKey(); err != nil {
 			return fmt.Errorf("%q edge: %v", e.Name, err)
 		}
-		if e.IsInverse() || e.M2M() {
+		if e.M2M() {
+			continue
+		} else if e.IsInverse() {
+			// Set the FKFieldStruct for the inverse if it exists.
+			for _, f := range e.Type.Fields {
+				if f.Relation == e.Inverse {
+					e.FKFieldStruct = &f.Name
+				}
+			}
 			continue
 		}
+
 		refid := t.ID
+
 		if e.OwnFK() {
 			refid = e.Type.ID
 		}
+
+		var field = &Field{
+			Name:        builderField(e.Rel.Column()),
+			Type:        refid.Type,
+			Nillable:    true,
+			Optional:    true,
+			Unique:      e.Unique,
+			UserDefined: refid.UserDefined,
+		}
+
+		if f, ok := fkFields[e.Name]; ok {
+			if !e.OwnFK() {
+				return errors.New("foreign key field edge does not own foreign key")
+			}
+			field = f
+			field.Type = e.Type.ID.Type
+			e.FKFieldStruct = &f.Name
+			delete(fkFields, e.Name)
+		}
+
 		fk := &ForeignKey{
-			Edge: e,
-			Field: &Field{
-				Name:        builderField(e.Rel.Column()),
-				Type:        refid.Type,
-				Nillable:    true,
-				Optional:    true,
-				Unique:      e.Unique,
-				UserDefined: refid.UserDefined,
-			},
+			Edge:  e,
+			Field: field,
 		}
 		if e.OwnFK() {
 			t.addFK(fk)
 		} else {
 			e.Type.addFK(fk)
 		}
+	}
+	if len(fkFields) > 0 {
+		return errors.New("foreign key field not mapped to foreign key")
 	}
 	return nil
 }
@@ -1179,6 +1219,9 @@ func (e Edge) StructField() string {
 // StructFKField returns the struct member for holding the edge
 // foreign-key in the model.
 func (e Edge) StructFKField() string {
+	if e.FKFieldStruct != nil {
+		return pascal(*e.FKFieldStruct)
+	}
 	return builderField(e.Rel.Column())
 }
 
