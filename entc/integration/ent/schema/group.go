@@ -51,6 +51,8 @@ func (Group) Fields() []ent.Field {
 				}
 				return nil
 			}),
+		field.ForeignKey("group_info_id").
+			Relation("info"),
 	}
 }
 
