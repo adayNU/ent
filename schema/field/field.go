@@ -1048,7 +1048,6 @@ type Descriptor struct {
 	SchemaType    map[string]string       // override the schema type.
 	Annotations   []schema.Annotation     // field annotations.
 	Comment       string                  // field comment.
-	Relation      string                  // relation of a foreign key.
 	Err           error
 }
 
