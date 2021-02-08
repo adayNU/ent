@@ -51,8 +51,6 @@ func (Group) Fields() []ent.Field {
 				}
 				return nil
 			}),
-		field.ForeignKey("group_info_id").
-			Relation("info"),
 	}
 }
 
@@ -62,6 +60,10 @@ func (Group) Edges() []ent.Edge {
 		edge.To("files", File.Type),
 		edge.To("blocked", User.Type),
 		edge.From("users", User.Type).Ref("groups"),
-		edge.To("info", GroupInfo.Type).Unique().Required(),
+		edge.To("info", GroupInfo.Type).
+			Unique().
+			Required().
+			FKFieldName("group_info_id").
+			FKTag(`json:"group_info_id,omitempty"`),
 	}
 }

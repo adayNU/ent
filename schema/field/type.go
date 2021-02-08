@@ -24,7 +24,6 @@ const (
 	TypeEnum
 	TypeString
 	TypeOther
-	TypeForeignKey
 	TypeInt8
 	TypeInt16
 	TypeInt32
@@ -162,7 +161,6 @@ var (
 		TypeUint64:  "uint64",
 		TypeFloat32: "float32",
 		TypeFloat64: "float64",
-		TypeForeignKey: "foreignKey",
 		TypeOther:   "other",
 	}
 	constNames = [...]string{

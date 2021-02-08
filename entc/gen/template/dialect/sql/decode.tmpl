@@ -128,6 +128,6 @@ func ({{ $receiver }} *{{ $.Name }}) assignValues(columns []string, values []int
 {{ define "dialect/sql/model/fields" }}
 	{{- range $fk := $.ForeignKeys }}
 		{{- $f := $fk.Field }}
-		{{ $f.Name }} {{ if $f.Nillable }}*{{ end }}{{ $f.Type }}
+		{{ $f.Name }} {{ if $f.Nillable }}*{{ end }}{{ $f.Type }} {{ with $f.StructTag }}`{{ . }}`{{ end }}
 	{{- end }}
 {{ end }}

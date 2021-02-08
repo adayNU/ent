@@ -22,6 +22,8 @@ type Descriptor struct {
 	Required    bool                // required on creation.
 	StorageKey  *StorageKey         // optional storage-key configuration.
 	Annotations []schema.Annotation // edge annotations.
+	FKFieldName string              // name of the edge's FK ID field.
+	FKTag       string              // struct tag for the edge's FK ID field.
 }
 
 // To defines an association edge between two vertices.
@@ -104,6 +106,19 @@ func (b *assocBuilder) Annotations(annotations ...schema.Annotation) *assocBuild
 	return b
 }
 
+// FKFieldName sets the name of the FK ID field for this association.
+// Must only be called on the edge which owns the ID.
+func (b *assocBuilder) FKFieldName(name string) *assocBuilder {
+	b.desc.FKFieldName = name
+	return b
+}
+
+// FKTag sets the struct tag for the FK ID field.
+func (b *assocBuilder) FKTag(tag string) *assocBuilder {
+	b.desc.FKTag = tag
+	return b
+}
+
 // Descriptor implements the ent.Descriptor interface.
 func (b *assocBuilder) Descriptor() *Descriptor {
 	return b.desc
@@ -157,6 +172,19 @@ func (b *inverseBuilder) Comment(string) *inverseBuilder {
 //
 func (b *inverseBuilder) Annotations(annotations ...schema.Annotation) *inverseBuilder {
 	b.desc.Annotations = append(b.desc.Annotations, annotations...)
+	return b
+}
+
+// FKFieldName sets the name of the FK ID field for this association.
+// Must only be called on the edge which owns the ID.
+func (b *inverseBuilder) FKFieldName(name string) *inverseBuilder {
+	b.desc.FKFieldName = name
+	return b
+}
+
+// FKTag sets the struct tag for the FK ID field.
+func (b *inverseBuilder) FKTag(tag string) *inverseBuilder {
+	b.desc.FKTag = tag
 	return b
 }
 

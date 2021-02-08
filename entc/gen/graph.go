@@ -248,6 +248,8 @@ func (g *Graph) addEdges(schema *load.Schema) {
 				Optional:    !e.Required,
 				StructTag:   structTag(e.Name, e.Tag),
 				Annotations: e.Annotations,
+				FKFieldName: e.FKFieldName,
+				FKTag:       e.FKTag,
 			})
 		// Inverse only.
 		case e.Inverse && e.Ref == nil:
@@ -262,6 +264,8 @@ func (g *Graph) addEdges(schema *load.Schema) {
 				Optional:    !e.Required,
 				StructTag:   structTag(e.Name, e.Tag),
 				Annotations: e.Annotations,
+				FKFieldName: e.FKFieldName,
+				FKTag:       e.FKTag,
 			})
 		// Inverse and assoc.
 		case e.Inverse:
@@ -278,6 +282,8 @@ func (g *Graph) addEdges(schema *load.Schema) {
 				Optional:    !e.Required,
 				StructTag:   structTag(e.Name, e.Tag),
 				Annotations: e.Annotations,
+				FKFieldName: e.FKFieldName,
+				FKTag:       e.FKTag,
 			}, &Edge{
 				def:         e,
 				Type:        typ,
@@ -287,6 +293,8 @@ func (g *Graph) addEdges(schema *load.Schema) {
 				Optional:    !ref.Required,
 				StructTag:   structTag(ref.Name, ref.Tag),
 				Annotations: ref.Annotations,
+				FKFieldName: e.FKFieldName,
+				FKTag:       e.FKTag,
 			})
 		default:
 			panic(graphError{"edge must be either an assoc or inverse edge"})

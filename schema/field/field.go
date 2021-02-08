@@ -136,31 +136,6 @@ func UUID(name string, typ driver.Valuer) *uuidBuilder {
 	}}
 }
 
-func ForeignKey(name string) *foreignKeyBuilder {
-	return &foreignKeyBuilder{
-		desc: &Descriptor{
-			Name: name,
-			Info: &TypeInfo{Type: TypeForeignKey},
-			// Match today's functionality.
-			Nillable: true,
-			Optional: true,
-		},
-	}
-}
-
-type foreignKeyBuilder struct {
-	desc *Descriptor
-}
-
-func (f *foreignKeyBuilder) Descriptor() *Descriptor {
-	return f.desc
-}
-
-func (f *foreignKeyBuilder) Relation(rel string) *foreignKeyBuilder {
-	f.desc.Relation = rel
-	return f
-}
-
 // Other represents a field that is not a good fit for any of the standard field types.
 //
 // The second argument defines the GoType and must implement the ValueScanner interface.
