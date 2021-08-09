@@ -301,6 +301,8 @@ func RoleValidator(r role.Role) error {
 	}
 }
 
+const DefaultPriority role.Priority = 0
+
 // PriorityValidator is a validator for the "priority" field enum values. It is called by the builders before save.
 func PriorityValidator(pr role.Priority) error {
 	switch pr.String() {

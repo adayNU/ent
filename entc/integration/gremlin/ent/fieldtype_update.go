@@ -1120,12 +1120,6 @@ func (ftu *FieldTypeUpdate) SetNillablePriority(r *role.Priority) *FieldTypeUpda
 	return ftu
 }
 
-// ClearPriority clears the value of the "priority" field.
-func (ftu *FieldTypeUpdate) ClearPriority() *FieldTypeUpdate {
-	ftu.mutation.ClearPriority()
-	return ftu
-}
-
 // SetUUID sets the "uuid" field.
 func (ftu *FieldTypeUpdate) SetUUID(u uuid.UUID) *FieldTypeUpdate {
 	ftu.mutation.SetUUID(u)
@@ -1814,9 +1808,6 @@ func (ftu *FieldTypeUpdate) gremlin() *dsl.Traversal {
 	}
 	if ftu.mutation.NullFloatCleared() {
 		properties = append(properties, fieldtype.FieldNullFloat)
-	}
-	if ftu.mutation.PriorityCleared() {
-		properties = append(properties, fieldtype.FieldPriority)
 	}
 	if ftu.mutation.UUIDCleared() {
 		properties = append(properties, fieldtype.FieldUUID)
@@ -2934,12 +2925,6 @@ func (ftuo *FieldTypeUpdateOne) SetNillablePriority(r *role.Priority) *FieldType
 	return ftuo
 }
 
-// ClearPriority clears the value of the "priority" field.
-func (ftuo *FieldTypeUpdateOne) ClearPriority() *FieldTypeUpdateOne {
-	ftuo.mutation.ClearPriority()
-	return ftuo
-}
-
 // SetUUID sets the "uuid" field.
 func (ftuo *FieldTypeUpdateOne) SetUUID(u uuid.UUID) *FieldTypeUpdateOne {
 	ftuo.mutation.SetUUID(u)
@@ -3640,9 +3625,6 @@ func (ftuo *FieldTypeUpdateOne) gremlin(id string) *dsl.Traversal {
 	}
 	if ftuo.mutation.NullFloatCleared() {
 		properties = append(properties, fieldtype.FieldNullFloat)
-	}
-	if ftuo.mutation.PriorityCleared() {
-		properties = append(properties, fieldtype.FieldPriority)
 	}
 	if ftuo.mutation.UUIDCleared() {
 		properties = append(properties, fieldtype.FieldUUID)

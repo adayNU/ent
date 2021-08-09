@@ -832,6 +832,10 @@ func (ftc *FieldTypeCreate) defaults() {
 		v := fieldtype.DefaultRole
 		ftc.mutation.SetRole(v)
 	}
+	if _, ok := ftc.mutation.Priority(); !ok {
+		v := fieldtype.DefaultPriority
+		ftc.mutation.SetPriority(v)
+	}
 	if _, ok := ftc.mutation.Pair(); !ok {
 		v := fieldtype.DefaultPair()
 		ftc.mutation.SetPair(v)
@@ -903,6 +907,9 @@ func (ftc *FieldTypeCreate) check() error {
 		if err := fieldtype.RoleValidator(v); err != nil {
 			return &ValidationError{Name: "role", err: fmt.Errorf(`ent: validator failed for field "role": %w`, err)}
 		}
+	}
+	if _, ok := ftc.mutation.Priority(); !ok {
+		return &ValidationError{Name: "priority", err: errors.New(`ent: missing required field "priority"`)}
 	}
 	if v, ok := ftc.mutation.Priority(); ok {
 		if err := fieldtype.PriorityValidator(v); err != nil {

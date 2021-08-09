@@ -96,7 +96,7 @@ const (
 	{{ $receiver := receiver $f.BuilderField }}
 	{{ if $f.HasGoType }}
 		{{ if $f.Default }}
-			const {{ $f.DefaultName }} {{ $enum }} = "{{ $f.DefaultValue }}"
+			const {{ $f.DefaultName }} {{ $enum }} = {{if $f.DefaultValueIsString}}"{{end}}{{ $f.DefaultValue }}{{if $f.DefaultValueIsString}}"{{end}}
 		{{ end }}
 	{{ else }}
 		{{/* omit the package name from the type. */}}

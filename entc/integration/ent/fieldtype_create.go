@@ -832,6 +832,10 @@ func (ftc *FieldTypeCreate) defaults() {
 		v := fieldtype.DefaultRole
 		ftc.mutation.SetRole(v)
 	}
+	if _, ok := ftc.mutation.Priority(); !ok {
+		v := fieldtype.DefaultPriority
+		ftc.mutation.SetPriority(v)
+	}
 	if _, ok := ftc.mutation.Pair(); !ok {
 		v := fieldtype.DefaultPair()
 		ftc.mutation.SetPair(v)
@@ -903,6 +907,9 @@ func (ftc *FieldTypeCreate) check() error {
 		if err := fieldtype.RoleValidator(v); err != nil {
 			return &ValidationError{Name: "role", err: fmt.Errorf(`ent: validator failed for field "role": %w`, err)}
 		}
+	}
+	if _, ok := ftc.mutation.Priority(); !ok {
+		return &ValidationError{Name: "priority", err: errors.New(`ent: missing required field "priority"`)}
 	}
 	if v, ok := ftc.mutation.Priority(); ok {
 		if err := fieldtype.PriorityValidator(v); err != nil {
@@ -2376,12 +2383,6 @@ func (u *FieldTypeUpsert) UpdatePriority() *FieldTypeUpsert {
 	return u
 }
 
-// ClearPriority clears the value of the "priority" field.
-func (u *FieldTypeUpsert) ClearPriority() *FieldTypeUpsert {
-	u.SetNull(fieldtype.FieldPriority)
-	return u
-}
-
 // SetUUID sets the "uuid" field.
 func (u *FieldTypeUpsert) SetUUID(v uuid.UUID) *FieldTypeUpsert {
 	u.Set(fieldtype.FieldUUID, v)
@@ -3599,13 +3600,6 @@ func (u *FieldTypeUpsertOne) SetPriority(v role.Priority) *FieldTypeUpsertOne {
 func (u *FieldTypeUpsertOne) UpdatePriority() *FieldTypeUpsertOne {
 	return u.Update(func(s *FieldTypeUpsert) {
 		s.UpdatePriority()
-	})
-}
-
-// ClearPriority clears the value of the "priority" field.
-func (u *FieldTypeUpsertOne) ClearPriority() *FieldTypeUpsertOne {
-	return u.Update(func(s *FieldTypeUpsert) {
-		s.ClearPriority()
 	})
 }
 
@@ -5012,13 +5006,6 @@ func (u *FieldTypeUpsertBulk) SetPriority(v role.Priority) *FieldTypeUpsertBulk 
 func (u *FieldTypeUpsertBulk) UpdatePriority() *FieldTypeUpsertBulk {
 	return u.Update(func(s *FieldTypeUpsert) {
 		s.UpdatePriority()
-	})
-}
-
-// ClearPriority clears the value of the "priority" field.
-func (u *FieldTypeUpsertBulk) ClearPriority() *FieldTypeUpsertBulk {
-	return u.Update(func(s *FieldTypeUpsert) {
-		s.ClearPriority()
 	})
 }
 

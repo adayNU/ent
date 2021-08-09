@@ -748,7 +748,12 @@ func (b *enumBuilder) NamedValues(namevalue ...string) *enumBuilder {
 }
 
 // Default sets the default value of the field.
-func (b *enumBuilder) Default(value string) *enumBuilder {
+func (b *enumBuilder) Default(value interface{}) *enumBuilder {
+	var _, isString = value.(string)
+	var _, isStringer = value.(fmt.Stringer)
+	if !(isString || isStringer) {
+		b.desc.Err = fmt.Errorf("Enum.Default: value must either be string or implement Stringer")
+	}
 	b.desc.Default = value
 	return b
 }

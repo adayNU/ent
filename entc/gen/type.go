@@ -861,7 +861,14 @@ func (f Field) DefaultName() string { return "Default" + pascal(f.Name) }
 func (f Field) UpdateDefaultName() string { return "Update" + f.DefaultName() }
 
 // DefaultValue returns the default value of the field. Invoked by the template.
-func (f Field) DefaultValue() interface{} { return f.def.DefaultValue }
+func (f Field) DefaultValue() interface{} {
+	return f.def.DefaultValue
+}
+
+func (f Field) DefaultValueIsString() bool {
+	var _, ok = f.def.DefaultValue.(string)
+	return ok
+}
 
 // DefaultFunc returns a bool stating if the default value is a func. Invoked by the template.
 func (f Field) DefaultFunc() interface{} { return f.def.DefaultKind == reflect.Func }
@@ -1383,7 +1390,8 @@ func (f Field) enums(lf *load.Field) ([]Enum, error) {
 			enums = append(enums, Enum{Name: f.EnumName(name), Value: value})
 		}
 	}
-	if value := lf.DefaultValue; value != nil {
+	// Can't check if a non-string default value is invalid.
+	if value := lf.DefaultValue; value != nil && lf.DefaultKind == reflect.String {
 		if value, ok := value.(string); !ok || !values[value] {
 			return nil, fmt.Errorf("invalid default value for enum field %q", f.Name)
 		}
