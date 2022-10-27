@@ -257,8 +257,20 @@ func (e *state) evalEdge(name string, exprs ...entql.Expr) *sql.Predicate {
 	default:
 		panic(evalError{fmt.Sprintf("expect id definition for edge %q", name)})
 	}
+	var fromC string
+	switch {
+	case e.context.ID != nil:
+		fromC = e.context.ID.Column
+	case e.context.CompositeID != nil && !edge.Spec.Inverse:
+		fromC = e.context.CompositeID[0].Column
+	case e.context.CompositeID != nil && edge.Spec.Inverse:
+		fromC = e.context.CompositeID[1].Column
+	default:
+		panic(evalError{fmt.Sprintf("expect id definition for state %q", e.context.Table)})
+	}
+	
 	step := NewStep(
-		From(e.context.Table, e.context.ID.Column),
+		From(e.context.Table, fromC),
 		To(edge.To.Table, toC),
 		Edge(edge.Spec.Rel, edge.Spec.Inverse, edge.Spec.Table, edge.Spec.Columns...),
 	)
