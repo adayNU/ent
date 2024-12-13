@@ -631,6 +631,7 @@ func (g *Graph) edgeSchemas() error {
 // Tables returns the schema definitions of SQL tables for the graph.
 func (g *Graph) Tables() (all []*schema.Table, err error) {
 	tables := make(map[string]*schema.Table)
+	allTables := make(map[string]*schema.Table) // All tables includes those which are skipped.
 	for _, n := range g.MutableNodes() {
 		table := schema.NewTable(n.Table()).
 			SetComment(n.sqlComment())
@@ -640,6 +641,7 @@ func (g *Graph) Tables() (all []*schema.Table, err error) {
 		switch ant := n.EntSQL(); {
 		case ant == nil:
 		case ant.Skip:
+			allTables[table.Name] = table
 			continue
 		default:
 			table.SetAnnotation(ant).SetSchema(ant.Schema)
@@ -655,6 +657,7 @@ func (g *Graph) Tables() (all []*schema.Table, err error) {
 		switch {
 		case tables[table.Name] == nil:
 			tables[table.Name] = table
+			allTables[table.Name] = table
 			all = append(all, table)
 		case tables[table.Name].Schema != table.Schema:
 			return nil, fmt.Errorf("cannot use the same table name %q in different schemas: %q, %q", table.Name, tables[table.Name].Schema, table.Schema)
@@ -672,7 +675,7 @@ func (g *Graph) Tables() (all []*schema.Table, err error) {
 			case O2O, O2M:
 				// The "owner" is the table that owns the relation (we set
 				// the foreign-key on) and "ref" is the referenced table.
-				owner, ref := tables[e.Rel.Table], tables[n.Table()]
+				owner, ref := allTables[e.Rel.Table], allTables[n.Table()]
 				column := fkColumn(e, owner, ref.PrimaryKey[0])
 				// If it's not a circular reference (self-referencing table),
 				// and the inverse edge is required, make it non-nullable.
@@ -688,7 +691,7 @@ func (g *Graph) Tables() (all []*schema.Table, err error) {
 					Symbol:     fkSymbol(e, owner, ref),
 				})
 			case M2O:
-				ref, owner := tables[e.Type.Table()], tables[e.Rel.Table]
+				ref, owner := allTables[e.Type.Table()], allTables[e.Rel.Table]
 				column := fkColumn(e, owner, ref.PrimaryKey[0])
 				// If it's not a circular reference (self-referencing table),
 				// and the edge is non-optional (required), make it non-nullable.
@@ -708,7 +711,7 @@ func (g *Graph) Tables() (all []*schema.Table, err error) {
 				if e.Through != nil || e.Ref != nil && e.Ref.Through != nil {
 					continue
 				}
-				t1, t2 := tables[n.Table()], tables[e.Type.Table()]
+				t1, t2 := allTables[n.Table()], allTables[e.Type.Table()]
 				c1 := &schema.Column{Name: e.Rel.Columns[0], Type: field.TypeInt, SchemaType: n.ID.def.SchemaType}
 				if ref := n.ID; ref.UserDefined {
 					c1.Type = ref.Type.Type
@@ -764,7 +767,11 @@ func (g *Graph) Tables() (all []*schema.Table, err error) {
 	}
 	// Append indexes to tables after all columns were added (including relation columns).
 	for _, n := range g.Nodes {
-		table := tables[n.Table()]
+		table, ok := tables[n.Table()]
+		if !ok {
+			// Skip tables that were marked as "skip".
+			continue
+		}
 		for _, idx := range n.Indexes {
 			table.AddIndex(idx.Name, idx.Unique, idx.Columns)
 			// Set the entsql.IndexAnnotation from the schema if exists.
